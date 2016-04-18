@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.example.s81t329.robottrial2.MainActivity">
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Forward"
+        android:id="@+id/forwardButton"
+        android:layout_marginTop="98dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:onClick="buttonOnClick"
+        android:layout_alignParentStart="false" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Left"
+        android:id="@+id/leftButton"
+        android:layout_marginTop="60dp"
+        android:layout_below="@+id/forwardButton"
+        android:layout_alignParentStart="true"
+        android:onClick="buttonOnClick" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Right"
+        android:id="@+id/rightButton"
+        android:layout_alignBottom="@+id/leftButton"
+        android:layout_alignParentEnd="true"
+        android:onClick="buttonOnClick" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reverse"
+        android:id="@+id/reverseButton"
+        android:layout_marginTop="41dp"
+        android:singleLine="true"
+        android:onClick="buttonOnClick"
+        android:layout_below="@+id/stopButton"
+        android:layout_alignStart="@+id/stopButton" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop"
+        android:id="@+id/stopButton"
+        android:layout_alignTop="@+id/rightButton"
+        android:layout_centerHorizontal="true"
+        android:onClick="buttonOnClick"
+        android:nestedScrollingEnabled="false" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Connect"
+        android:id="@+id/connectButton"
+        android:longClickable="true"
+        android:onClick="buttonOnClick"
+        android:layout_above="@+id/leftButton"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/mTranslationTextView"
+        android:layout_above="@+id/connectButton"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/mRotationTextView"
+        android:layout_above="@+id/mTranslationTextView"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/relocalization_textview"
+        android:layout_alignBaseline="@+id/mRotationTextView"
+        android:layout_alignBottom="@+id/mRotationTextView"
+        android:layout_alignEnd="@+id/connectButton" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SetPoint"
+        android:id="@+id/SetPoint"
+        android:layout_marginTop="26dp"
+        android:singleLine="false"
+        android:layout_below="@+id/reverseButton"
+        android:layout_alignStart="@+id/reverseButton"
+        android:onClick="buttonOnClick" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="P:"
+        android:id="@+id/pointText"
+        android:layout_below="@+id/SetPoint"
+        android:layout_alignEnd="@+id/rightButton"
+        android:layout_alignParentStart="true" />
+
+</RelativeLayout>
