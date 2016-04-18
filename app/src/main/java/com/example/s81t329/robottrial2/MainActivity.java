@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.example.s81t329.robottrial2.driver.*;
+
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.view.View;
@@ -61,8 +62,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean mIsTangoServiceConnected;
     private TangoPoseData mTangoPose;
     private boolean mIsConstantSpaceRelocalize;
-
+    private double[][] dropPoints = new double[10][2];
     private UsbSerialPort port;
+    private boolean pointDropped = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -165,13 +167,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setMarker()
-    {
-        String input = String.valueOf(mTangoPose.translation[0]);
-        input = input + " " + String.valueOf(mTangoPose.translation[1]);
-        pointText.setText(input);
-        System.out.println("this has been called" + input);
+    private void setMarker() {
+        double x = (mTangoPose.translation[0]);
+        double y = mTangoPose.translation[1];
+        //pointText.setText(Double.toString(x) + " " + Double.toString(y));
+        vectorz(x, y);
+        System.out.println("this has been called" + x + " " + y);
     }
+
+    private void vectorz(double inx, double iny) {
+        double x = inx;
+        double y = iny;
+        dropPoints[0][0] = x;
+        dropPoints[0][1] = y;
+        pointDropped = true;
+    }
+
+    private void dropped() {
+        if (pointDropped) {
+            if (dropPoints[0][1] < mTangoPose.translation[1]) {
+                pointText.setText("it's working, it's actually working LESS");
+            } else if (dropPoints[0][1] > mTangoPose.translation[1]) {
+                pointText.setText("it's working, it's actually working GREATER");
+            }
+        }
+    }
+
     public void doIt() {
 
         // Find all available drivers from attached devices.
@@ -185,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
 
 // Open a connection to the first available driver.
         UsbSerialDriver driver = availableDrivers.get(0);
-        manager.requestPermission(driver.getDevice(),mPermissionIntent);
+        manager.requestPermission(driver.getDevice(), mPermissionIntent);
         UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
         if (connection == null) {
             System.out.println("null");
@@ -216,9 +237,8 @@ public class MainActivity extends AppCompatActivity {
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            }
-       }
+        }
     }
-
 
 
     @Override
@@ -339,7 +359,6 @@ public class MainActivity extends AppCompatActivity {
                         * SECS_TO_MILLISECS;
                 mPreviousTimeStamp = pose.timestamp;
                 mTimeToNextUpdate -= deltaTime;
-
                 // Throttle updates to the UI based on UPDATE_INTERVAL_MS.
                 if (mTimeToNextUpdate < 0.0) {
                     mTimeToNextUpdate = UPDATE_INTERVAL_MS;
@@ -352,10 +371,11 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            dropped();
                             synchronized (mSharedLock) {
                                 mRotationTextView.setText(rotationMsg);
                                 mTranslationTextView.setText(translationMsg);
-                                mRelocalizationTextView.setText(mIsRelocalized ? localized  : not_localized);
+                                mRelocalizationTextView.setText(mIsRelocalized ? localized : not_localized);
                             }
                         }
                     });
