@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mRelocalizationTextView;
     private boolean mIsRelocalized;
     private boolean mIsLearningMode;
+    private boolean pointDropping = false;
     private Tango mTango;
     private TangoConfig mConfig;
     private boolean mIsTangoServiceConnected;
@@ -163,34 +164,50 @@ public class MainActivity extends AppCompatActivity {
                 doIt();
                 break;
             case R.id.SetPoint:
-                setMarker();
+                pointDropping = true;
+                pointDropped = true;
         }
     }
 
-    private void setMarker() {
-        double x = (mTangoPose.translation[0]);
-        double y = mTangoPose.translation[1];
-        //pointText.setText(Double.toString(x) + " " + Double.toString(y));
-        vectorz(x, y);
-        System.out.println("this has been called" + x + " " + y);
+
+    public double getAngle() {
+/*        double[] rotation = mTangoPose.rotation;
+        rotation[0] = Math.cos(rotation[0]/2);
+        rotation[1] = Math.sin(rotation[1]/2)*rotation[1];
+        rotation[2] = Math.sin(rotation[2]/2)*rotation[2];
+        rotation[3] = Math.sin(rotation[3]/2)*rotation[3];
+        double mag = Math.sqrt(rotation[0] * rotation[0] + rotation[2] * rotation[2]);
+        rotation[0] /= mag;
+        double ang = 2*Math.acos(rotation[0]);
+        return ang;*/
+
+        float angle = (float) Math.atan2(2f * mTangoPose.rotation[1] * mTangoPose.rotation[0] + 2f * mTangoPose.rotation[2]
+                * mTangoPose.rotation[3], 1 - 2f * (Math.pow(mTangoPose.rotation[3], 2)  + Math.pow(mTangoPose.rotation[0], 2)));     // Yaw
+
+        return angle;
     }
 
-    private void vectorz(double inx, double iny) {
-        double x = inx;
-        double y = iny;
-        dropPoints[0][0] = x;
-        dropPoints[0][1] = y;
-        pointDropped = true;
-    }
-
-    private void dropped() {
+    private void dropped(double inx, double iny) {
+        int x = (int)(inx * 100);
+        int y = (int) (iny * 100);
+        if(pointDropping)
+        {
+            dropPoints[0][0] = x;
+            dropPoints[0][1] = y;
+            pointDropping = false;
+        }
         if (pointDropped) {
             if (dropPoints[0][1] < mTangoPose.translation[1]) {
-                pointText.setText("it's working, it's actually working LESS");
+                //pointText.setText("it's working, it's actually working LESS");
             } else if (dropPoints[0][1] > mTangoPose.translation[1]) {
-                pointText.setText("it's working, it's actually working GREATER");
+                //pointText.setText("it's working, it's actually working GREATER");
             }
+            double targetX = dropPoints[0][0] - x;
+            double targetY = dropPoints[0][1] - y;
+
+            pointText.setText((int) targetX + ", " + (int) targetY);
         }
+       // System.out.println(getAngle());
     }
 
     public void doIt() {
@@ -333,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
                             && pose.targetFrame == TangoPoseData
                             .COORDINATE_FRAME_START_OF_SERVICE) {
                         if (pose.statusCode == TangoPoseData.POSE_VALID) {
-                            System.out.println("adf true");
                             mIsRelocalized = true;
                             // Set the color to green
                         } else {
@@ -368,14 +384,17 @@ public class MainActivity extends AppCompatActivity {
                     // it affects the UI, which will cause an error if performed
                     // from the Tango
                     // service thread
+                    final double x = pose.translation[0];
+                    final double y = pose.translation[1];
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            dropped();
+
                             synchronized (mSharedLock) {
                                 mRotationTextView.setText(rotationMsg);
                                 mTranslationTextView.setText(translationMsg);
                                 mRelocalizationTextView.setText(mIsRelocalized ? localized : not_localized);
+                                dropped(x, y);
                             }
                         }
                     });
