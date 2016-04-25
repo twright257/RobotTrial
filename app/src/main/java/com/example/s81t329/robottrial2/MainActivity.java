@@ -181,13 +181,14 @@ public class MainActivity extends AppCompatActivity {
         double ang = 2*Math.acos(rotation[0]);
         return ang;*/
 
-        float angle = (float) Math.atan2(2f * mTangoPose.rotation[1] * mTangoPose.rotation[0] + 2f * mTangoPose.rotation[2]
-                * mTangoPose.rotation[3], 1 - 2f * (Math.pow(mTangoPose.rotation[3], 2)  + Math.pow(mTangoPose.rotation[0], 2)));     // Yaw
-
+        double angle = Math.atan2(2 * (mTangoPose.rotation[3] * mTangoPose.rotation[2] + mTangoPose.rotation[0] * mTangoPose.rotation[1]),
+                1 - 2 * (mTangoPose.rotation[1] * mTangoPose.rotation[1] + mTangoPose.rotation[2] * mTangoPose.rotation[2]));     // Yaw
         return angle;
     }
 
-    private void dropped(double inx, double iny) {
+    private void dropped(double inx, double iny, double r, double angle) {
+
+        byte buffer[] = new byte[1];
         int x = (int)(inx * 100);
         int y = (int) (iny * 100);
         if(pointDropping)
@@ -206,8 +207,135 @@ public class MainActivity extends AppCompatActivity {
             double targetY = dropPoints[0][1] - y;
 
             pointText.setText((int) targetX + ", " + (int) targetY);
+
+            if (targetX < 20 && targetX > -20) {
+                if (targetY > 10) {
+                    if (angle < 0.15 && r > -0.15) {
+                        System.out.println("turn straight");
+                        mRotationTextView.setText("straight");
+                        buffer[0] = 'w';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle < 0) {
+                        mRotationTextView.setText("left");
+                        buffer[0] = 'a';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle > 0) {
+                        mRotationTextView.setText("right");
+                        buffer[0] = 'd';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (targetY < -10) {
+                    if (angle <= -3.0 || angle >= 3.0) {
+                        mRotationTextView.setText("straight");
+                        System.out.println("turn straight");
+                        buffer[0] = 'w';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else {
+                        mRotationTextView.setText("left");
+                        buffer[0] = 'a';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    }
+                } else {
+                    mRotationTextView.setText("stop");
+                    buffer[0] = 's';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                }
+            } else {
+                if (targetX > 20) {
+                    if (angle < -1.50 && angle > -1.70) {
+                        System.out.println("turn straight");
+                        mRotationTextView.setText("straight");
+                        buffer[0] = 'w';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle < -1.70) {
+                        mRotationTextView.setText("left");
+                        buffer[0] = 'a';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle > -1.50) {
+                        mRotationTextView.setText("right");
+                        buffer[0] = 'd';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (targetX < -20) {
+                    if (angle > 1.50 && angle < 1.7) {
+                        System.out.println("turn straight");
+                        mRotationTextView.setText("straight");
+                        buffer[0] = 'w';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle < 1.5) {
+                        mRotationTextView.setText("left");
+                        buffer[0] = 'a';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle > 1.7) {
+                        mRotationTextView.setText("right");
+                        buffer[0] = 'd';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
         }
-       // System.out.println(getAngle());
+        mTranslationTextView.setText(String.valueOf(angle));
+        //System.out.println(angle);
     }
 
     public void doIt() {
@@ -366,6 +494,7 @@ public class MainActivity extends AppCompatActivity {
                 final String rotationMsg = String.format(sRotationFormat,
                         pose.rotation[0], pose.rotation[1], pose.rotation[2],
                         pose.rotation[3]);
+                //System.out.println("Pose 1 " + (int)(100*pose.getRotationAsFloats()[1]));
 
                 // Output to LogCat
                 String logMsg = translationMsg + " | " + rotationMsg;
@@ -386,15 +515,18 @@ public class MainActivity extends AppCompatActivity {
                     // service thread
                     final double x = pose.translation[0];
                     final double y = pose.translation[1];
+                    final double rotation = (int) 100*pose.rotation[1];
+                    final double angle = Math.atan2(2 * (pose.rotation[3] * pose.rotation[2] + pose.rotation[0] * pose.rotation[1]),
+                            1 - 2 * (pose.rotation[1] * pose.rotation[1] + pose.rotation[2] * pose.rotation[2]));
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
 
                             synchronized (mSharedLock) {
-                                mRotationTextView.setText(rotationMsg);
+                                //mRotationTextView.setText(rotationMsg);
                                 mTranslationTextView.setText(translationMsg);
                                 mRelocalizationTextView.setText(mIsRelocalized ? localized : not_localized);
-                                dropped(x, y);
+                                dropped(x, y, rotation, angle);
                             }
                         }
                     });
