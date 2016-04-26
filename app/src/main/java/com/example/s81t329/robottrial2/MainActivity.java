@@ -3,6 +3,7 @@ package com.example.s81t329.robottrial2;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -30,8 +31,14 @@ import com.google.atap.tangoservice.TangoXyzIjData;
 import java.io.IOException;
 
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -63,9 +70,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean mIsTangoServiceConnected;
     private TangoPoseData mTangoPose;
     private boolean mIsConstantSpaceRelocalize;
-    private double[][] dropPoints = new double[10][2];
+    private double[][] dropPoints = new double[10][3];
     private UsbSerialPort port;
     private boolean pointDropped = false;
+    TextToSpeech t1;
+    private boolean start = false;
+    private boolean engaged = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +118,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         mRelocalizationTextView = (TextView) findViewById(R.id.relocalization_textview);
+
+        t1=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status != TextToSpeech.ERROR) {
+                    t1.setLanguage(Locale.ENGLISH);
+                }
+            }
+        });
     }
 
 
@@ -166,6 +185,10 @@ public class MainActivity extends AppCompatActivity {
             case R.id.SetPoint:
                 pointDropping = true;
                 pointDropped = true;
+                t1.speak("Target recorded", TextToSpeech.QUEUE_FLUSH, null);
+                break;
+            case R.id.Start:
+                start = true;
         }
     }
 
@@ -186,18 +209,41 @@ public class MainActivity extends AppCompatActivity {
         return angle;
     }
 
+    public static String getIpAddress() {
+        String ipAddress = "Unable to Fetch IP..";
+        try {
+            Enumeration en;
+            en = NetworkInterface.getNetworkInterfaces();
+            while ( en.hasMoreElements()) {
+                NetworkInterface intf = (NetworkInterface)en.nextElement();
+                for (Enumeration enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = (InetAddress)enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress()&&inetAddress instanceof Inet4Address) {
+                        ipAddress=inetAddress.getHostAddress().toString();
+                        return ipAddress;
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            ex.printStackTrace();
+        }
+        return ipAddress;
+    }
+
     private void dropped(double inx, double iny, double r, double angle) {
 
         byte buffer[] = new byte[1];
         int x = (int)(inx * 100);
         int y = (int) (iny * 100);
+        angle = (int) (angle * 1000);
         if(pointDropping)
         {
             dropPoints[0][0] = x;
             dropPoints[0][1] = y;
+            dropPoints[0][2] = angle;
             pointDropping = false;
         }
-        if (pointDropped) {
+        if (pointDropped && start) {
             if (dropPoints[0][1] < mTangoPose.translation[1]) {
                 //pointText.setText("it's working, it's actually working LESS");
             } else if (dropPoints[0][1] > mTangoPose.translation[1]) {
@@ -208,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
             pointText.setText((int) targetX + ", " + (int) targetY);
 
-            if (targetX < 20 && targetX > -20) {
+            if (targetX < 10 && targetX > -10) {
                 if (targetY > 10) {
                     if (angle < 0.15 && r > -0.15) {
                         System.out.println("turn straight");
@@ -250,7 +296,16 @@ public class MainActivity extends AppCompatActivity {
                             System.out.println("ERROR");
                             e.printStackTrace();
                         }
-                    } else {
+                    } else if (angle > -3.0 && angle < 0){
+                        mRotationTextView.setText("right");
+                        buffer[0] = 'd';
+                        try {
+                            port.write(buffer, 1);
+                        } catch (IOException e) {
+                            System.out.println("ERROR");
+                            e.printStackTrace();
+                        }
+                    } else if (angle < 3 && angle > 0) {
                         mRotationTextView.setText("left");
                         buffer[0] = 'a';
                         try {
@@ -262,16 +317,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     mRotationTextView.setText("stop");
+                    engaged = true;
+                    t1.speak("Engaging Target", TextToSpeech.QUEUE_FLUSH, null);
                     buffer[0] = 's';
                         try {
                             port.write(buffer, 1);
+                            start = false;
                         } catch (IOException e) {
                             System.out.println("ERROR");
                             e.printStackTrace();
                         }
                 }
             } else {
-                if (targetX > 20) {
+                if (targetX > 10) {
                     if (angle < -1.50 && angle > -1.70) {
                         System.out.println("turn straight");
                         mRotationTextView.setText("straight");
@@ -301,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                     }
-                } else if (targetX < -20) {
+                } else if (targetX < -10) {
                     if (angle > 1.50 && angle < 1.7) {
                         System.out.println("turn straight");
                         mRotationTextView.setText("straight");
@@ -333,9 +391,36 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+        } else if (pointDropped && engaged) {
+            if ( angle < dropPoints[0][2]) {
+                buffer[0] = 'a';
+                try {
+                    port.write(buffer, 1);
+                } catch (IOException e) {
+                    System.out.println("ERROR");
+                    e.printStackTrace();
+                }
+            } else if (angle > dropPoints[0][2]) {
+                buffer[0] = 'd';
+                try {
+                    port.write(buffer, 1);
+                } catch (IOException e) {
+                    System.out.println("ERROR");
+                    e.printStackTrace();
+                }
+            } else {
+                buffer[0] = 's';
+                try {
+                    port.write(buffer, 1);
+                } catch (IOException e) {
+                    System.out.println("ERROR");
+                    e.printStackTrace();
+                }
+                engaged = false;
+            }
         }
         mTranslationTextView.setText(String.valueOf(angle));
-        //System.out.println(angle);
+        //System.out.println(getIpAddress());
     }
 
     public void doIt() {
@@ -371,6 +456,7 @@ public class MainActivity extends AppCompatActivity {
         }
         try {
             port.setParameters(115200, UsbSerialPort.DATABITS_8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE); //setBaudRate(115200);
+            t1.speak("Connected", TextToSpeech.QUEUE_FLUSH, null);
             //byte buffer[] = new byte[1];
             //buffer[0] = 'w';
             //port.write(buffer, 1);
